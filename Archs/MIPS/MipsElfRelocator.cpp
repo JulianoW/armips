@@ -9,27 +9,24 @@ int MipsElfRelocator::expectedMachine() const
 	return EM_MIPS;
 }
 
-bool MipsElfRelocator::processHi16Entries(uint32_t lo16Opcode, int64_t lo16RelocationBase, std::vector<RelocationAction>& actions, std::vector<std::string>& errors)
+void MipsElfRelocator::processHi16Entries(uint32_t lo16Opcode, int64_t lo16RelocationBase, int symbolIndex, std::vector<RelocationAction>& actions, std::vector<std::string>& errors)
 {
-	bool result = true;
-
-	for (const Hi16Entry &hi16: hi16Entries)
+	auto it = hi16Entries.begin();
+	while (it != hi16Entries.end())
 	{
-		if (hi16.relocationBase != lo16RelocationBase)
+		if (it->symblIndex != symbolIndex)
 		{
-			errors.push_back(tfm::format("Mismatched R_MIPS_HI16 with R_MIPS_LO16 of a different symbol"));
-			result = false;
+			++it;
 			continue;
 		}
 
-		int32_t addend = (int32_t)((hi16.opcode & 0xFFFF) << 16) + (int16_t)(lo16Opcode & 0xFFFF);
-		int64_t fullPosition = addend + hi16.relocationBase;
-		uint32_t opcode = (hi16.opcode & 0xffff0000) | (((fullPosition >> 16) + ((fullPosition & 0x8000) != 0)) & 0xFFFF);
-		actions.emplace_back(hi16.offset, opcode);
-	}
+		int32_t addend = (int32_t)((it->opcode & 0xFFFF) << 16) + (int16_t)(lo16Opcode & 0xFFFF);
+		int64_t fullPosition = addend + it->relocationBase;
+		uint32_t opcode = (it->opcode & 0xffff0000) | (((fullPosition >> 16) + ((fullPosition & 0x8000) != 0)) & 0xFFFF);
+		actions.emplace_back(it->offset, opcode);
 
-	hi16Entries.clear();
-	return result;
+		it = hi16Entries.erase(it);
+	}
 }
 
 bool MipsElfRelocator::relocateOpcode(int type, const RelocationData& data, std::vector<RelocationAction>& actions, std::vector<std::string>& errors)
@@ -46,11 +43,10 @@ bool MipsElfRelocator::relocateOpcode(int type, const RelocationData& data, std:
 		op += (int) data.relocationBase;
 		break;
 	case R_MIPS_HI16:
-		hi16Entries.emplace_back(data.opcodeOffset, data.relocationBase, data.opcode);
+		hi16Entries.push_back({data.opcodeOffset, data.relocationBase, data.opcode, data.symbolIndex});
 		break;
 	case R_MIPS_LO16:
-		if (!processHi16Entries(op, data.relocationBase, actions, errors))
-			result = false;
+		processHi16Entries(op, data.relocationBase, data.symbolIndex, actions, errors);
 		op = (op&0xffff0000) | (((op&0xffff)+data.relocationBase)&0xffff);
 		break;
 	default:
@@ -64,9 +60,12 @@ bool MipsElfRelocator::relocateOpcode(int type, const RelocationData& data, std:
 
 bool MipsElfRelocator::finish(std::vector<RelocationAction>& actions, std::vector<std::string>& errors)
 {
-	// This shouldn't happen. If it does, relocate as if there was no lo16 opcode
+	// This shouldn't happen
 	if (!hi16Entries.empty())
-		return processHi16Entries(0, hi16Entries.front().relocationBase, actions, errors);
+	{
+		errors.emplace_back(tfm::format("Unmatched R_MIPS_HI16 relocation entries"));
+		return false;
+	}
 	return true;
 }
 

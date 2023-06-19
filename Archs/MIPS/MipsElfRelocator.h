@@ -26,14 +26,14 @@ public:
 	void setSymbolAddress(RelocationData& data, int64_t symbolAddress, int symbolType) override;
 	std::unique_ptr<CAssemblerCommand> generateCtorStub(std::vector<ElfRelocatorCtor>& ctors) override;
 private:
-	bool processHi16Entries(uint32_t lo16Opcode, int64_t lo16RelocationBase, std::vector<RelocationAction>& actions, std::vector<std::string>& errors);
+	void processHi16Entries(uint32_t lo16Opcode, int64_t lo16RelocationBase, int symbolIndex, std::vector<RelocationAction>& actions, std::vector<std::string>& errors);
 
 	struct Hi16Entry
 	{
-		Hi16Entry(int64_t offset, int64_t relocationBase, uint32_t opcode) : offset(offset), relocationBase(relocationBase), opcode(opcode) {}
 		int64_t offset;
 		int64_t relocationBase;
 		uint32_t opcode;
+		int32_t symblIndex;
 	};
 
 	std::vector<Hi16Entry> hi16Entries;

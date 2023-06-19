@@ -362,6 +362,7 @@ bool ElfRelocator::relocateFile(ElfRelocatorFile& file, int64_t& relocationAddre
 				relData.opcode = sectionData.getDoubleWord(pos, elf->getEndianness());
 				relData.opcodeOffset = pos+relocationOffsets[index];
 				relData.addend = rela.r_addend;
+				relData.symbolIndex = symNum;
 				relocator->setSymbolAddress(relData,sym.st_value,sym.st_info & 0xF);
 
 				// externs?
