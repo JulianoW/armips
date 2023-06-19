@@ -40,8 +40,9 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         name: armips.exe
-        path: armips.exe
-      
+        path: ${{github.workspace}}/build/armips.exe
+    - name: test dir
+      run: ls ${{github.workspace}}/build
     - name: Test
       working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.  
