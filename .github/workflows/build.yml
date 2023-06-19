@@ -20,11 +20,7 @@ jobs:
     strategy:
       matrix:
         config:
-          - { name: "Ubuntu gcc", os: "ubuntu-latest", generator: "Unix Makefiles", cc: "gcc", cxx: "g++" }
-          - { name: "Ubuntu clang", os: "ubuntu-latest", generator: "Unix Makefiles", cc: "clang", cxx: "clang++" }
-          - { name: "macOS clang", os: "macos-latest", generator: "Unix Makefiles", cc: "clang", cxx: "clang++" }
           - { name: "Windows clang", os: "windows-latest", generator: "Unix Makefiles", cc: "clang", cxx: "clang++" }
-          - { name: "Windows MSVC", os: "windows-2022", generator: "Visual Studio 17 2022"}
 
     steps:
     - uses: actions/checkout@v2
@@ -41,6 +37,11 @@ jobs:
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} 
 
+    - uses: actions/upload-artifact@v3
+    with:
+        name: armips.exe
+        path: armips.exe
+      
     - name: Test
       working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.  
